@@ -1,13 +1,15 @@
-package main
+package coverer
 
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
-	"s2-polygon-coverer/benchmark"
+	"math"
 	"time"
 
 	"github.com/golang/geo/s2"
+	"github.com/sebastianosuna/s2-polygon-coverer/benchmark"
 )
 
 // GeoJSON Represents a geojson feature
@@ -52,11 +54,9 @@ func GeoJSONFromFile(filePath string) (*GeoJSON, error) {
 // CoverPolygon returns a list of CellIds (tokens) of the given level that cover the given GeoJSON
 func CoverPolygon(p *GeoJSON, level int) []string {
 	defer benchmark.TimeTrack(time.Now(), "coverPolygon")
-	coverer := &s2.RegionCoverer{MaxLevel: level, MinLevel: level}
-
 	points := p.Coordinates()
-
 	s2points := make([]s2.Point, len(points))
+
 	for i, point := range points {
 		lat := point[1]
 		lng := point[0]
@@ -70,8 +70,11 @@ func CoverPolygon(p *GeoJSON, level int) []string {
 	polygon := s2.PolygonFromLoops(loops)
 	region := s2.Region(polygon)
 
-	cellunion := coverer.Covering(region)
+	level = level - int(math.Trunc(myloop.Area()*200))
+	fmt.Printf("LLLLEVEL %d, %f", level, myloop.Area())
 
+	coverer := &s2.RegionCoverer{MaxLevel: level, MinLevel: level}
+	cellunion := coverer.Covering(region)
 	cellIds := make([]string, len(cellunion))
 
 	for i, cell := range cellunion {
@@ -114,3 +117,5 @@ func GeoJSONContainsPoint(geo *GeoJSON, lat, lng float64, level int) (bool, erro
 
 	return contained, nil
 }
+
+func main() {}
